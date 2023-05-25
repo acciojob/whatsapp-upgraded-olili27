@@ -27,7 +27,16 @@ public class WhatsappService {
         return whatsappRepository.changeAdmin(approver, user, group);
     }
 
-//    public int removeUser(User user) throws Exception {
-//
-//    }
+    public int removeUser(User user) throws Exception {
+
+        if (whatsappRepository.getAdminMap().containsValue(user)) {
+            throw new Exception("Cannot remove admin");
+        }
+
+        if (whatsappRepository.getGroupUserMap().values().contains(user)){
+
+        }
+
+        return 0;
+    }
 }
