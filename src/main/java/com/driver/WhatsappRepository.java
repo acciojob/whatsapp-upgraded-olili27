@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class WhatsappRepository {
@@ -170,23 +171,98 @@ public class WhatsappRepository {
             return ("Group does not exist");
     }
 
-//    public int removeUser(User user) throws Exception {
-//        if (!adminMap.containsValue(user)) {
-//            for (Map.Entry<Group, User> groupUserEntry: adminMap.entrySet()) {
-//                if (groupUserEntry.getValue() == user) {
-//                    Group group = groupUserEntry.getKey();
-//
-//                    if (group.getNumberOfParticipants() == 2) {
-//                        personalChatMap.get(group).remove(user);
-//                        personalChatMessageMap.remove(user);
-//                    }
-//                }
-//            }
-//        }
-//
-//        throw new Exception("Cannot remove admin");
-//
-//    }
+    public int removeUser(User user) throws Exception {
+        int count = 0;
+        
+        if(!containsUser(groupUserMap, user) && !containsUser(personalChatMap, user)) throw new Exception("User not found");
+
+        if (adminMap.containsValue(user)) {
+            throw new Exception("Cannot remove admin");
+        }
+        
+        if (containsUser(groupUserMap, user)) {
+            Group group = getGroup(groupUserMap, user);
+            List<User> userList = getListWhereUserBelongs(groupUserMap, user);
+            userList.remove(user);
+            group.setNumberOfParticipants(userList.size());
+
+            count += group.getNumberOfParticipants();
+
+            groupUserMap.put(group, userList);
+
+            List<Message> messagesForTheGroup = groupMessageMap.get(group);
+            List<Message> messagesForTheUser = senderMap.get(user);
+
+            for (Message message: messagesForTheUser) {
+                messagesForTheGroup.remove(message);
+            }
+
+            count += messagesForTheGroup.size();
+
+            senderMap.remove(user);
+            groupMessageMap.put(group, messagesForTheGroup);
+
+            for (User user1: senderMap.keySet()) {
+                count += senderMap.get(user1).size();
+            }
+
+        } else if (containsUser(personalChatMap, user)) {
+            Group group = getGroup(personalChatMap, user);
+            List<User> userList = getListWhereUserBelongs(personalChatMap, user);
+            userList.remove(user);
+            group.setNumberOfParticipants(userList.size());
+
+            count += group.getNumberOfParticipants();
+
+            personalChatMap.put(group, userList);
+
+            List<Message> messagesForTheGroup = personalChatMessageMap.get(group);
+            List<Message> messagesForTheUser = senderMap.get(user);
+
+            for (Message message: messagesForTheUser) {
+                messagesForTheGroup.remove(message);
+            }
+
+            count += messagesForTheGroup.size();
+
+            senderMap.remove(user);
+            personalChatMessageMap.put(group, messagesForTheGroup);
+
+            for (User user1: senderMap.keySet()) {
+                count += senderMap.get(user1).size();
+            }
+        }
+
+       return count;
+    }
+
+    private Group getGroup(HashMap<Group, List<User>> db, User user) {
+        Group group = null;
+
+        for (Map.Entry<Group, List<User>> groupUserEntry: db.entrySet()) {
+            if (groupUserEntry.getValue().contains(user)) group = groupUserEntry.getKey();
+        }
+
+        return group;
+    }
+
+    private List<User> getListWhereUserBelongs(HashMap<Group, List<User>> db, User user) {
+        List<User> userList = null;
+
+        for (Map.Entry<Group, List<User>> groupUserEntry: db.entrySet()) {
+            if (groupUserEntry.getValue().contains(user)) userList = groupUserEntry.getValue();
+        }
+
+        return userList;
+    }
+
+    private boolean containsUser(HashMap<Group, List<User>> db, User user) {
+        for (Map.Entry<Group, List<User>> groupUserEntry: db.entrySet()) {
+            if (groupUserEntry.getValue().contains(user)) return true;
+        }
+        
+        return false;
+    }
 
 }
 
